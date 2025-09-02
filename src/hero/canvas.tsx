@@ -166,14 +166,12 @@ export function Canvas({
     function resizeCanvas() {
       if (!canvasEl || !gl || !uniforms) return;
       const imgRatio = imageData.width / imageData.height;
-      gl.uniform1f(uniforms.u_img_ratio, imgRatio);
+      gl.uniform1f(uniforms.u_imageAspectRatio, imgRatio);
 
       const side = 1000;
       canvasEl.width = side * devicePixelRatio;
       canvasEl.height = side * devicePixelRatio;
       gl.viewport(0, 0, canvasEl.height, canvasEl.height);
-      gl.uniform1f(uniforms.u_ratio, 1);
-      gl.uniform1f(uniforms.u_img_ratio, imgRatio);
     }
 
     resizeCanvas();

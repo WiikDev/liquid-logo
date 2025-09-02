@@ -7,18 +7,17 @@ out vec4 fragColor;
 
 uniform sampler2D u_image_texture;
 uniform float u_time;
-uniform float u_ratio;
-uniform float u_img_ratio;
+uniform float u_imageAspectRatio;
 
 uniform float u_customParam;
 
 vec2 get_img_uv() {
   vec2 img_uv = vUv;
   img_uv -= .5;
-  if (u_ratio > u_img_ratio) {
-    img_uv.x = img_uv.x * u_ratio / u_img_ratio;
+  if (1. > u_imageAspectRatio) {
+    img_uv.x = img_uv.x / u_imageAspectRatio;
   } else {
-    img_uv.y = img_uv.y * u_img_ratio / u_ratio;
+    img_uv.y = img_uv.y * u_imageAspectRatio;
   }
   img_uv += .5;
 
@@ -30,7 +29,6 @@ vec2 get_img_uv() {
 void main() {
   vec2 uv = vUv;
   uv.y = 1. - uv.y;
-  uv.x *= u_ratio;
 
   float t = .005 * u_time;
   
