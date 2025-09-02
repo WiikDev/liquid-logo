@@ -4,16 +4,6 @@ import { liquidFragSource } from '@/app/hero/liquid-frag';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-// uniform sampler2D u_image_texture;
-// uniform float u_time;
-// uniform float u_ratio;
-// uniform float u_img_ratio;
-// uniform float u_patternScale;
-// uniform float u_refraction;
-// uniform float u_edge;
-// uniform float u_patternBlur;
-// uniform float u_liquid;
-
 const vertexShaderSource = `#version 300 es
 precision mediump float;
 
@@ -26,11 +16,7 @@ void main() {
 }` as const;
 
 export type ShaderParams = {
-  patternScale: number;
-  refraction: number;
-  edge: number;
-  patternBlur: number;
-  liquid: number;
+  customParam: number;
   speed: number;
 };
 
@@ -52,12 +38,8 @@ export function Canvas({
 
   function updateUniforms() {
     if (!gl || !uniforms) return;
-    gl.uniform1f(uniforms.u_edge, params.edge);
-    gl.uniform1f(uniforms.u_patternBlur, params.patternBlur);
+    gl.uniform1f(uniforms.u_customParam, params.customParam);
     gl.uniform1f(uniforms.u_time, 0);
-    gl.uniform1f(uniforms.u_patternScale, params.patternScale);
-    gl.uniform1f(uniforms.u_refraction, params.refraction);
-    gl.uniform1f(uniforms.u_liquid, params.liquid);
   }
 
   useEffect(() => {

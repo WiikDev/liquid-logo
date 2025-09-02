@@ -35,7 +35,7 @@ export function Hero({ imageId }: HeroProps) {
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [processing, setProcessing] = useState<boolean>(true);
 
-  const shouldForciblyParseLogo = !!process.env.NEXT_FORCE_IMAGE_PARSING;
+  const shouldForciblyParseLogo = true;
 
   // Check URL for image ID on mount
   useEffect(() => {
@@ -293,55 +293,20 @@ export function Hero({ imageId }: HeroProps) {
         </div>
 
         <Control
-          label="Dispersion"
-          // note we renamed refraction to dispersion but many share links already call it refraction so we're just making a label change for now
-          // we could update it to dispersion everywhere if we have time to rewrite the querystring parser to use either name and map it into dispersion
-          value={state.refraction}
-          min={params.refraction.min}
-          max={params.refraction.max}
-          step={params.refraction.step}
-          onValueChange={(value) => setState((state) => ({ ...state, refraction: value }))}
+          label="Custom param"
+          value={state.customParam}
+          min={params.customParam.min}
+          max={params.customParam.max}
+          step={params.customParam.step}
+          onValueChange={(value) => setState((state) => ({ ...state, customParam: value }))}
         />
         <Control
-          label="Edge"
-          value={state.edge}
-          min={params.edge.min}
-          max={params.edge.max}
-          step={params.edge.step}
-          onValueChange={(value) => setState((state) => ({ ...state, edge: value }))}
-        />
-        <Control
-          label="Pattern Blur"
-          value={state.patternBlur}
-          min={params.patternBlur.min}
-          max={params.patternBlur.max}
-          step={params.patternBlur.step}
-          onValueChange={(value) => setState((state) => ({ ...state, patternBlur: value }))}
-        />
-        <Control
-          label="Liquify"
-          value={state.liquid}
-          min={params.liquid.min}
-          max={params.liquid.max}
-          step={params.liquid.step}
-          onValueChange={(value) => setState((state) => ({ ...state, liquid: value }))}
-        />
-        <Control
-          label="Speed"
-          value={state.speed}
-          min={params.speed.min}
-          max={params.speed.max}
-          step={params.speed.step}
-          onValueChange={(value) => setState((state) => ({ ...state, speed: value }))}
-        />
-        <Control
-          label="Pattern Scale"
-          value={state.patternScale}
-          min={params.patternScale.min}
-          max={params.patternScale.max}
-          step={params.patternScale.step}
-          format={(value) => (value === '0' || value === '10' ? value : parseFloat(value).toFixed(1))}
-          onValueChange={(value) => setState((state) => ({ ...state, patternScale: value }))}
+            label="Speed"
+            value={state.speed}
+            min={params.speed.min}
+            max={params.speed.max}
+            step={params.speed.step}
+            onValueChange={(value) => setState((state) => ({...state, speed: value}))}
         />
 
         <div className="col-span-full mt-12">
