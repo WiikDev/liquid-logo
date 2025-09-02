@@ -37,16 +37,12 @@ export function parseLogoImage(file: File | string): Promise<{ imageData: ImageD
       canvas.width = width + 2. * padding;
       canvas.height = height + 2. * padding;
 
-      const shapeCanvas = document.createElement('canvas');
-      shapeCanvas.width = width + 2. * padding;
-      shapeCanvas.height = height + 2. * padding;
-      const shapeCtx = shapeCanvas.getContext('2d')!;
-      shapeCtx.fillStyle = "white";
-      shapeCtx.fillRect(0, 0, canvas.width, canvas.height);
-      shapeCtx.filter = "grayscale(100%)";
-      shapeCtx.filter = 'blur(20px)';
-      shapeCtx.drawImage(img, padding, padding, width, height);
-      const bigBlurData = shapeCtx.getImageData(0, 0, canvas.width, canvas.height).data;
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.filter = "grayscale(100%)";
+      ctx.filter = 'blur(20px)';
+      ctx.drawImage(img, padding, padding, width, height);
+      const bigBlurData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
 
       const outImg = ctx.createImageData(canvas.width, canvas.height);
       for (let y = 0; y < canvas.height; y++) {
