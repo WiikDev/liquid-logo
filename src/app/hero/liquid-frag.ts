@@ -30,13 +30,13 @@ void main() {
   vec2 uv = vUv;
   uv.y = 1. - uv.y;
 
-  float t = .005 * u_time;
+  float t = .03 * u_time;
   
   vec2 img_uv = get_img_uv();
   vec4 img = texture(u_image_texture, img_uv);
 
   img.g = u_customParam;
-  img.b = sin(t) * img.r;
+  img.b = (.5 + .5 * sin(t)) * img.r;
 
   fragColor = img;
 }
