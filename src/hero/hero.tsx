@@ -34,6 +34,7 @@ export function Hero({ imageId }: HeroProps) {
 
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [processing, setProcessing] = useState<boolean>(true);
+  const [maskBlob, setMaskBlob] = useState<Blob | null>(null);
 
   // Check URL for image ID on mount
   useEffect(() => {
@@ -71,6 +72,7 @@ export function Hero({ imageId }: HeroProps) {
         ctx.drawImage(bitmap, 0, 0);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         setImageData(imageData);
+        setMaskBlob(blob); // Also set the mask blob for download
       } catch (error) {
         console.error(error);
       }
@@ -149,6 +151,7 @@ export function Hero({ imageId }: HeroProps) {
     parseLogoImage(data).then(({ imageData, pngBlob }) => {
       // Set the image data for the shader to pick up
       setImageData(imageData);
+      setMaskBlob(pngBlob); // Store the mask blob for download
       setProcessing(false);
 
       if (typeof data === 'string') {
@@ -190,6 +193,27 @@ export function Hero({ imageId }: HeroProps) {
       }
     }
   };
+
+  const downloadMask = useCallback(() => {
+    if (!maskBlob) {
+      toast.error('No mask available to download');
+      return;
+    }
+
+    // Create a download link
+    const url = URL.createObjectURL(maskBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `liquid-logo-mask-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Clean up the URL
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+
+    toast.success('Mask downloaded!');
+  }, [maskBlob]);
 
   return (
     <div
@@ -343,13 +367,23 @@ export function Hero({ imageId }: HeroProps) {
         />
 
         <div className="col-span-full mt-12">
-          <label
-            htmlFor="file-input"
-            className="mb-16 flex h-40 cursor-pointer items-center justify-center rounded-4 bg-button font-medium select-none"
-          >
-            <input type="file" accept="image/*,.svg" onChange={handleFileInput} id="file-input" className="hidden" />
-            Upload image
-          </label>
+          <div className="mb-16 flex gap-8">
+            <label
+              htmlFor="file-input"
+              className="flex h-40 flex-1 cursor-pointer items-center justify-center rounded-4 bg-button font-medium select-none"
+            >
+              <input type="file" accept="image/*,.svg" onChange={handleFileInput} id="file-input" className="hidden" />
+              Upload image
+            </label>
+            {maskBlob && (
+              <button
+                onClick={downloadMask}
+                className="bg-blue-600 hover:bg-blue-700 flex h-40 items-center justify-center rounded-4 px-16 font-medium text-white transition-colors"
+              >
+                Download mask
+              </button>
+            )}
+          </div>
           <p className="w-fill text-sm text-white/80">
             Tips: transparent or white background is required. Shapes work better than words. Use an SVG or a
             high-resolution image.
