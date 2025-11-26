@@ -1,7 +1,7 @@
 'use client';
 
 import { liquidFragSource } from '@/app/hero/liquid-frag';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import { toast } from 'sonner';
 
 // uniform sampler2D u_image_texture;
@@ -34,15 +34,20 @@ export type ShaderParams = {
   speed: number;
 };
 
-export function Canvas({
-  imageData,
-  params,
-  processing,
-}: {
+export interface CanvasHandle {
+  captureFrame: () => ImageData | null;
+  getCanvas: () => HTMLCanvasElement | null;
+}
+
+export const Canvas = forwardRef<CanvasHandle, {
   imageData: ImageData;
   params: ShaderParams;
   processing: boolean;
-}) {
+}>(function Canvas({
+  imageData,
+  params,
+  processing,
+}, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gl, setGl] = useState<WebGL2RenderingContext | null>(null);
   const [uniforms, setUniforms] = useState<Record<string, WebGLUniformLocation>>({});
@@ -251,5 +256,35 @@ export function Canvas({
     };
   }, [gl, uniforms, imageData]);
 
+  useImperativeHandle(ref, () => ({
+    captureFrame: () => {
+      if (!gl || !canvasRef.current) return null;
+      
+      const canvas = canvasRef.current;
+      const width = canvas.width;
+      const height = canvas.height;
+      
+      // Read pixels from WebGL context
+      const pixels = new Uint8Array(width * height * 4);
+      gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+      
+      // Create ImageData (flip vertically because WebGL has origin at bottom-left)
+      const imageData = new ImageData(width, height);
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const srcIndex = (y * width + x) * 4;
+          const dstIndex = ((height - 1 - y) * width + x) * 4;
+          imageData.data[dstIndex] = pixels[srcIndex];
+          imageData.data[dstIndex + 1] = pixels[srcIndex + 1];
+          imageData.data[dstIndex + 2] = pixels[srcIndex + 2];
+          imageData.data[dstIndex + 3] = pixels[srcIndex + 3];
+        }
+      }
+      
+      return imageData;
+    },
+    getCanvas: () => canvasRef.current,
+  }), [gl]);
+
   return <canvas ref={canvasRef} className="block h-full w-full object-contain" />;
-}
+});

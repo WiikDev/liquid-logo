@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { defaultParams, params, type ShaderParams } from './params';
-import { Canvas } from './canvas';
+import { Canvas, type CanvasHandle } from './canvas';
 import { Slider } from 'radix-ui';
 import { NumberInput } from '@/app/number-input';
 import { roundOptimized } from '@/app/round-optimized';
@@ -34,6 +34,8 @@ export function Hero({ imageId }: HeroProps) {
 
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const [processing, setProcessing] = useState<boolean>(true);
+  const [downloading, setDownloading] = useState<boolean>(false);
+  const canvasRef = useRef<CanvasHandle>(null);
 
   // Check URL for image ID on mount
   useEffect(() => {
@@ -191,6 +193,103 @@ export function Hero({ imageId }: HeroProps) {
     }
   };
 
+  const downloadAnimatedVideo = useCallback(async () => {
+    if (!canvasRef.current || !imageData) {
+      toast.error('Canvas non disponible');
+      return;
+    }
+
+    const canvas = canvasRef.current.getCanvas();
+    if (!canvas) {
+      toast.error('Canvas non trouvé');
+      return;
+    }
+
+    // Vérifier si MediaRecorder est disponible
+    if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
+      toast.error('Votre navigateur ne supporte pas l\'enregistrement vidéo');
+      return;
+    }
+
+    setDownloading(true);
+    toast.loading('Enregistrement de l\'animation...', { id: 'video-creation' });
+
+    try {
+      // Attendre un peu pour s'assurer que le canvas est bien rendu
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Créer un stream depuis le canvas à 60 FPS pour une fluidité maximale
+      const stream = canvas.captureStream(60);
+      
+      // Options pour WebM avec VP9 (meilleure qualité, supporte la transparence)
+      let mimeType = 'video/webm;codecs=vp9';
+      if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm;codecs=vp8';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+          mimeType = 'video/webm';
+        }
+      }
+
+      const options: MediaRecorderOptions = {
+        mimeType,
+        videoBitsPerSecond: 10000000, // 10 Mbps pour une qualité maximale
+      };
+
+      const mediaRecorder = new MediaRecorder(stream, options);
+      const chunks: Blob[] = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+          chunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'liquid-logo-animated.webm';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        stream.getTracks().forEach(track => track.stop());
+        toast.success('Animation téléchargée avec succès!', { id: 'video-creation' });
+        setDownloading(false);
+      };
+
+      mediaRecorder.onerror = (event) => {
+        console.error('Erreur MediaRecorder:', event);
+        toast.error('Erreur lors de l\'enregistrement', { id: 'video-creation' });
+        stream.getTracks().forEach(track => track.stop());
+        setDownloading(false);
+      };
+
+      // Enregistrer pendant 3 secondes pour une boucle fluide
+      mediaRecorder.start(100); // Enregistrer des chunks toutes les 100ms
+      
+      // Mettre à jour le toast avec un compte à rebours
+      let timeLeft = 3;
+      const countdown = setInterval(() => {
+        timeLeft--;
+        if (timeLeft > 0) {
+          toast.loading(`Enregistrement... ${timeLeft}s`, { id: 'video-creation' });
+        }
+      }, 1000);
+      
+      setTimeout(() => {
+        clearInterval(countdown);
+        mediaRecorder.stop();
+      }, 3000);
+
+    } catch (error) {
+      console.error('Erreur lors de l\'enregistrement:', error);
+      toast.error('Erreur lors de l\'enregistrement de l\'animation', { id: 'video-creation' });
+      setDownloading(false);
+    }
+  }, [imageData]);
+
   return (
     <div
       className="flex flex-col items-stretch gap-24 px-32 max-md:max-w-564 md:grid md:grid-cols-[500px_500px] md:gap-32"
@@ -223,13 +322,18 @@ export function Hero({ imageId }: HeroProps) {
             switch (state.background) {
               case 'metal':
                 return 'linear-gradient(to bottom, #eee, #b8b8b8)';
+              case 'transparent':
+                // Pattern de damier pour indiquer la transparence
+                return `
+                  repeating-conic-gradient(#e0e0e0 0% 25%, #f5f5f5 0% 50%) 50% / 20px 20px
+                `;
             }
             return state.background;
           })(),
         }}
       >
         <div className="aspect-square w-400">
-          {imageData && <Canvas imageData={imageData} params={state} processing={processing} />}
+          {imageData && <Canvas ref={canvasRef} imageData={imageData} params={state} processing={processing} />}
         </div>
       </div>
 
@@ -258,6 +362,19 @@ export function Hero({ imageId }: HeroProps) {
             onClick={() => setState({ ...state, background: 'black' })}
           >
             Black
+          </button>
+
+          <button
+            className="size-28 cursor-pointer rounded-full text-[0px] outline outline-white/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            style={{
+              background: `
+                repeating-conic-gradient(#e0e0e0 0% 25%, #f5f5f5 0% 50%) 50% / 8px 8px
+              `,
+            }}
+            onClick={() => setState({ ...state, background: 'transparent' })}
+            title="Transparent"
+          >
+            Transparent
           </button>
 
           <label
@@ -350,6 +467,13 @@ export function Hero({ imageId }: HeroProps) {
             <input type="file" accept="image/*,.svg" onChange={handleFileInput} id="file-input" className="hidden" />
             Upload image
           </label>
+          <button
+            onClick={downloadAnimatedVideo}
+            disabled={downloading || !imageData}
+            className="mb-16 flex h-40 w-full cursor-pointer items-center justify-center rounded-4 bg-blue font-medium select-none disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {downloading ? 'Enregistrement...' : 'Télécharger animation (WebM)'}
+          </button>
           <p className="w-fill text-sm text-white/80">
             Tips: transparent or white background is required. Shapes work better than words. Use an SVG or a
             high-resolution image.
